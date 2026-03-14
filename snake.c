@@ -19,6 +19,7 @@ char colorList[99][8] = {"Backgr", "Red", "Orange", "Yellow", "Green", "Blue", "
 int colorNums[99] = {0,999000000,999646000,999999000,999000,999, 500000500, 999999999};
 double colorCnt = 0;
 
+
 void leaderboard() {
     FILE *HOLD;
     HOLD = fopen("junk.txt", "w"); //This bullshit is the only thing that makes it work IDFK IM CRASHING OUT!!
@@ -52,6 +53,7 @@ void leaderboard() {
         }
     }
 }
+
 
 int startMenu() {
     clear();
@@ -105,6 +107,7 @@ int startMenu() {
     }
 }
 
+
 void giveColors(int num) {
     FILE *color_list;
     FILE *color_nums;
@@ -117,6 +120,7 @@ void giveColors(int num) {
     fclose(color_list);
     fclose(color_nums);
 }
+
 
 int getColors() {
     FILE *color_list;
@@ -145,6 +149,7 @@ int getColors() {
     fclose(color_nums);
     return colorInd;
 }
+
 
 void getRGB(int colorNum, int change) {
     clear();
@@ -196,6 +201,7 @@ void getRGB(int colorNum, int change) {
     change != 0 ? giveColors(colorNum) : giveColors(colorNum - 1);
 }
 
+
 void optionMenu() {
     clear();
     int colorNum = getColors();
@@ -223,7 +229,7 @@ void optionMenu() {
             mvprintw(centerY + 1, centerX - 17, "Inputted: %d, Press enter to save", DELAY);
             mvprintw(centerY + 2, centerX - 9, "Press X to change");
             refresh();
-            char choice; 
+            char choice;
             do {
                 choice = tolower(getchar());
             } while (choice != '\r' && choice != 'x');
@@ -318,6 +324,7 @@ void optionMenu() {
     }
 }
 
+
 void getProfiles() {
     FILE *profiles;
     profiles = fopen("profiles.txt", "r");
@@ -328,6 +335,7 @@ void getProfiles() {
     strIndex--;
     fclose(profiles);
 }
+
 
 void updateScores() {
     char colrs[3], highs[6], prof[16], delay[5];
@@ -386,6 +394,7 @@ void updateScores() {
     strcpy(profList[Login], prof);
 }
 
+
 void giveProfiles() {
     updateScores();
     FILE *profiles;
@@ -393,6 +402,7 @@ void giveProfiles() {
     for (int i = 0; i < strIndex + 1; i++) fprintf(profiles, "%s\n", profList[i]);
     fclose(profiles);
 }
+
 
 int login() {
     clear();
@@ -428,6 +438,7 @@ int login() {
         return -1;
     }
 }
+
 
 void snakePos(char dir) {
     bool axis;
@@ -471,7 +482,7 @@ void snakePos(char dir) {
         if (snakeList[i] == intDir || HEIGHT == intDir - (intDir / 100) * 100 || WIDTH == intDir / 100 || intDir / 100 == 0 || intDir - (intDir / 100) * 100 == 0) {
             updateScores();
             if (snakeLen * 100 > highScore) {
-                highScore = snakeLen * 100; 
+                highScore = snakeLen * 100;
                 if (snakeLen * 100 > leaderBoard[0]) {
                     leaderBoard[0] = snakeLen * 1e2;
                     mvprintw(centerY, MAX_X  / 2- 15, "You got the HIGH SCORE of %d", highScore);
@@ -497,7 +508,7 @@ void snakePos(char dir) {
             break;
         }
         if (start) break;
-        if (snakeList[i] == applePos) while (snakeList[i] == applePos) { 
+        if (snakeList[i] == applePos) while (snakeList[i] == applePos) {
             int appleX = rand() % WIDTH;
             int appleY = rand() % HEIGHT;
             if (appleX == 0 || appleX == WIDTH) appleX += ((appleX == 0) ? 1 : -1);
@@ -507,6 +518,7 @@ void snakePos(char dir) {
     }
     snakeList[0] = intDir;
 }
+
 
 char snakeMove(char oldDir) {
     char dir = ' ';
@@ -534,6 +546,7 @@ char snakeMove(char oldDir) {
     }
     return dir;
 }
+
 
 void printSnake() {
     bool snakeCheck, snakeDoubleCheck, appleCheck;
@@ -594,6 +607,7 @@ void printSnake() {
     mvprintw(centerY + HEIGHT / 2 + 4, centerX - 8, "Highscore: %d", leaderBoard[0]);
     refresh();
 }
+
 
 int main() {
     initscr();
