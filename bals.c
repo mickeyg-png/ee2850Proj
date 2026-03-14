@@ -2,7 +2,6 @@
 #include <string.h>
 #include <ncurses.h>
 int main() {
-    char balls = getchar();
-    printf("%d", balls == '\n');
+    printf("%d", has_color);
     return 0;
 }
