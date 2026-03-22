@@ -15,11 +15,9 @@ int centerX, centerY;
 char profList[99][19], profLead[5][4] = {"NaN", "NaN", "NaN", "NaN", "NaN"};
 char colorList[99][8] = {"Backgr", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "White"};
 int colorNums[99] = {0,999000000,999646000,999999000,999000,999, 500000500, 999999999};
-clock_t start_t, end_t;
 
 struct snake {
     int x, y, prevX, prevY;
-    bool end;
 };
 
 struct snake snakeArr[MAX_LEN];
@@ -501,9 +499,7 @@ void snakePos(char dir) {
     int nextX = snakeArr[0].x + (axis ? intDir : 0);
     int nextY = snakeArr[0].y + (!axis ? intDir : 0);
     if (nextX == applePos.x && nextY == applePos.y) {
-        snakeArr[snakeLen].end = false;
         snakeLen++;
-        snakeArr[snakeLen].end = true;
         newApple();
     }
     for (int i = 0; i < snakeLen; i++)  {
@@ -570,17 +566,17 @@ char snakeMove(char oldDir) {
 }
 
 int colorCh[3] = {0, 0, 0};
-
+int hold = 0;
 void printSnake() {
     bool snakeCheck = false, snakeDoubleCheck = false, appleCheck;
     int snakeBody;
     bool tick = false;
-    end_t = clock();
-    clock_t hold_t = start_t - end_t;
-    if (hold_t > 2.5e5) {
-        start_t = clock();
+    hold++;
+    if (hold > 5) {
+        hold = 0;
         tick = true;
     }
+    mvprintw(50, 0, "%d", hold);
     for (int i = 0; i < WIDTH; i++) {
         bool balls = false;
         if (WALL_COLOR > 99) {
@@ -605,8 +601,8 @@ void printSnake() {
             mvprintw(centerY - HEIGHT / 2 + snakeArr[i].y, centerX - WIDTH / 2 + snakeArr[i].x, "X");
             attroff(COLOR_PAIR(SNAKE_COLOR));
             SNAKE_COLOR = 100;
-            if (snakeArr[i].end) mvprintw(centerY - HEIGHT / 2 + snakeArr[i].prevY, centerX - WIDTH / 2 + snakeArr[i].prevX, " ");
         }
+        mvprintw(centerY - HEIGHT / 2 + snakeArr[snakeLen].y, centerX - WIDTH / 2 + snakeArr[snakeLen].x, " ");
     } else {
         attron(COLOR_PAIR(SNAKE_COLOR));
         mvprintw(centerY - HEIGHT / 2 + snakeArr[0].y, centerX - WIDTH / 2 + snakeArr[0].x, "X");
@@ -633,8 +629,6 @@ int main() {
     snakeArr[0].y = HEIGHT / 2;
     snakeArr[0].prevX = WIDTH / 2;
     snakeArr[0].prevY = HEIGHT / 2;
-    snakeArr[0].end = true;    
-    start_t = clock();
     initscr();
     cbreak();            
     noecho();
