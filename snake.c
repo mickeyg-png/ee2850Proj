@@ -314,7 +314,7 @@ void optionMenu() {
         getRGB(colorNum, 0);
         getColors();
     } else if (picked == 1 || picked == 2 || picked || 3) {
-        mvprintw(centerY - 3, centerX - 30, "Select color (For single digit end in a .), press X to return");
+        mvprintw(centerY - 3, centerX - 15, "Select color, press X to return");
         mvprintw(centerY - 4, centerX - 10, "Your colors are: ");
         for (int i = 0; i < colorNum; i++) {
             init_pair(i+1, i, 0);
@@ -335,8 +335,8 @@ void optionMenu() {
         int nextPick = choice - '0';
         do {
             choice = tolower(getchar());
-        } while (!isdigit(choice) && choice != '.');
-        if (choice != '.') nextPick = nextPick * 10 + choice - '0';
+        } while (!isdigit(choice) && choice != '\r');
+        if (choice != '\r') nextPick = nextPick * 10 + choice - '0';
         if (nextPick == 0) nextPick = 99;
         nextPick++;
         for (int i = 0; i < colorNum; i++) init_pair(i+1, i, i);
@@ -436,14 +436,20 @@ int login() {
     refresh();
     char login = tolower(getchar());
     if (login == 'y') {
+        Login = 0;
         clear();
         for (int i = 0; i < strIndex + 1; i++) ((strIndex + 1) < 50) ? mvprintw(centerY - strIndex / 2 + i, centerX - 3, "%d: %.3s", i + 1, profList[i]) : mvprintw(centerY - strIndex / 4 + (i - ((i >= (strIndex+1) / 2) ? (strIndex+1) / 2 : 0)), centerX - 5 + ((i >= (strIndex + 1) / 2) ? 10 : 0), "%d: %.3s", i + 1, profList[i]);
         refresh();
+        bool isDub = false, doubleDig = false;
+        if (strIndex > 9) isDub = true;
         do {
             do {
-                login = tolower(getchar());
-            } while(!isdigit(login));
-            Login = login - '0';
+                do {
+                    login = tolower(getchar());
+                } while(!isdigit(login));
+                Login += (login - '0') * (doubleDig ? 10 : 1);
+                doubleDig = true;
+            } while (login != '\r' && !(doubleDig || isDub));
         } while ((Login < 0) && (Login > strIndex + 2));
         Login--;
         char *next = profList[Login] + 3;
@@ -566,24 +572,17 @@ char snakeMove(char oldDir) {
 }
 
 int colorCh[3] = {0, 0, 0};
-int hold = 0;
 void printSnake() {
     bool snakeCheck = false, snakeDoubleCheck = false, appleCheck;
     int snakeBody;
-    bool tick = false;
-    hold++;
-    if (hold > 5) {
-        hold = 0;
-        tick = true;
-    }
-    mvprintw(50, 0, "%d", hold);
     for (int i = 0; i < WIDTH; i++) {
         bool balls = false;
-        if (WALL_COLOR > 99) {
+        if (WALL_COLOR == 100) {
             balls = true;
-            colorCh[0] += tick;
-            WALL_COLOR = colorCh[0] % 6 + 2;
+            colorCh[0] += 1;
+            WALL_COLOR = (colorCh[0] + i) % 6 + 2;
         }
+        mvprintw(50,0,"%d", colorCh[0]);
         attron(COLOR_PAIR(WALL_COLOR));
         mvprintw(centerY - HEIGHT / 2, i + centerX - WIDTH / 2, "#");
         mvprintw(centerY + HEIGHT / 2 + 1, i + centerX - WIDTH / 2, "#");
@@ -592,10 +591,11 @@ void printSnake() {
             mvprintw(centerY - HEIGHT / 2 + i, centerX + WIDTH / 2, "#");
         }
         attroff(COLOR_PAIR(WALL_COLOR));
+        if (balls) WALL_COLOR = 100;
     }
-    if (SNAKE_COLOR > 99) {
+    if (SNAKE_COLOR == 100) {
         for (int i = 0; i < snakeLen; i++) {
-            colorCh[2] += tick;
+            colorCh[2] += 1;
             SNAKE_COLOR = (i + colorCh[2]) % 6 + 2;
             attron(COLOR_PAIR(SNAKE_COLOR));
             mvprintw(centerY - HEIGHT / 2 + snakeArr[i].y, centerX - WIDTH / 2 + snakeArr[i].x, "X");
@@ -610,9 +610,9 @@ void printSnake() {
         mvprintw(centerY - HEIGHT / 2 + snakeArr[snakeLen - 1].prevY, centerX - WIDTH / 2 + snakeArr[snakeLen - 1].prevX, " ");
     }
     bool balls = false;
-    if (APPLE_COLOR > 99) {
+    if (APPLE_COLOR > 100) {
         balls = true;
-        colorCh[1] += tick;
+        colorCh[1] += 1;
         APPLE_COLOR = colorCh[1] % 6 + 2;
     }
     attron(COLOR_PAIR(APPLE_COLOR));
