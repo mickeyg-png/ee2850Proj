@@ -2,6 +2,9 @@
 #include <string.h>
 #include <ncurses.h>
 int main() {
-    printf("%d", has_color);
-    return 0;
+    for (int i = 0; i < 5; i++) {
+        char balls[3];
+        sprintf(balls, "f%d", i);
+        printf("%s\n", balls);
+    }
 }

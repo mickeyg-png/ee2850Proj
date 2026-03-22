@@ -4,35 +4,55 @@
 #include <ncurses.h>
 #include <time.h>
 #include <string.h>
-#include <math.h>
 #define WIDTH 50
 #define HEIGHT WIDTH / 2
 #define MAX_LEN WIDTH * HEIGHT
 int DELAY = 50; // in ms
-int snakeList[MAX_LEN] = {WIDTH * 50 + HEIGHT / 2}; //2525 is the center of the board, (25, 25) x*100+y
 int snakeLen = 1;
-int applePos, highScore, leaderBoard[5] = {0, 0, 0, 0, 0}, MAX_Y, MAX_X, SNAKE_COLOR = 3, WALL_COLOR = 8, APPLE_COLOR = 2, strIndex = -1, Colors, Login = -1;
+int highScore, leaderBoard[5] = {0, 0, 0, 0, 0}, MAX_Y, MAX_X, SNAKE_COLOR = 5, WALL_COLOR = 8, APPLE_COLOR = 2, strIndex = -1, Colors, Login = -1;
 bool start = true;
 int centerX, centerY;
 char profList[99][19], profLead[5][4] = {"NaN", "NaN", "NaN", "NaN", "NaN"};
-char colorList[99][8] = {"Backgr", "Red", "Orange", "Yellow", "Green", "Blue", "White"};
+char colorList[99][8] = {"Backgr", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "White"};
 int colorNums[99] = {0,999000000,999646000,999999000,999000,999, 500000500, 999999999};
-double colorCnt = 0;
+clock_t start_t, end_t;
 
+struct snake {
+    int x, y, prevX, prevY;
+    bool end;
+};
+
+struct snake snakeArr[MAX_LEN];
+
+typedef struct {
+    int x,y;
+} apple;
+
+apple applePos;
+
+void newApple() {
+    applePos.x = rand() % WIDTH;
+    applePos.y = rand() % HEIGHT;
+    if (applePos.x == 0 || applePos.x == WIDTH) applePos.x += ((applePos.x == 0) ? 1 : -1);
+    if (applePos.y == 0 || applePos.y == HEIGHT) applePos.y += ((applePos.y == 0) ? 1 : -1);
+}
 
 void leaderboard() {
     FILE *HOLD;
     HOLD = fopen("junk.txt", "w"); //This bullshit is the only thing that makes it work IDFK IM CRASHING OUT!!
     fclose(HOLD);
     for (int i = 0; i < strIndex + 1; i++) {
-        char *scores = profList[i] + 10;
+        char *scores = profList[i] + 3;
         char *junk;
+        strtol(scores, &junk, 10);
+        scores = junk + 1;
         strtol(scores, &junk, 10);
         scores = junk + 1;
         int check, keep;
         char Keep[4], Check[4];
         strncpy(Check, profList[i], 3);
         check = strtol(scores, &junk, 10) * 100;
+        fprintf(HOLD, "%s: %d", Check, check);
         for (int j = 0; j <= 4; j++) {
             if (leaderBoard[j] < check) {
                 if (leaderBoard[j] == 0) {
@@ -54,6 +74,7 @@ void leaderboard() {
     }
 }
 
+double colorCnt = 0;
 
 int startMenu() {
     clear();
@@ -72,6 +93,9 @@ int startMenu() {
             SNAKE_COLOR -= 99;
             rainCheck = true;
         }
+        init_pair(SNAKE_COLOR, SNAKE_COLOR - 1, 0);
+        init_pair(WALL_COLOR, WALL_COLOR - 1, 0);
+        init_pair(APPLE_COLOR, APPLE_COLOR - 1, 0);
         attron(COLOR_PAIR(SNAKE_COLOR));
         mvprintw(centerY, centerX + 20, "Snake");
         attroff(COLOR_PAIR(SNAKE_COLOR));
@@ -100,13 +124,15 @@ int startMenu() {
         choice = getch();
     } while (!isdigit(choice));
     int picked = choice - '0';
+    init_pair(SNAKE_COLOR, SNAKE_COLOR - 1, SNAKE_COLOR - 1);
+    init_pair(WALL_COLOR, WALL_COLOR - 1, WALL_COLOR - 1);
+    init_pair(APPLE_COLOR, APPLE_COLOR - 1, APPLE_COLOR - 1);
     if (picked == 1 || picked == 2 || picked == 3 || picked == 4) {
         return picked;
     } else {
         return startMenu();
     }
 }
-
 
 void giveColors(int num) {
     FILE *color_list;
@@ -121,21 +147,26 @@ void giveColors(int num) {
     fclose(color_nums);
 }
 
-
 int getColors() {
     FILE *color_list;
     FILE *color_nums;
-    color_nums = fopen("numcol.txt", "r");
-    color_list = fopen("colors.txt", "r");
-    int colorInd = -1;
-    do {
-        colorInd++;
-        fscanf(color_list, "%s", &colorList[colorInd]);
-        fscanf(color_nums, "%d", &colorNums[colorInd]);
-    } while (strlen(colorList[colorInd]) != 0 && colorInd < 100);
-    if (colorInd == 0) {
-        strcpy(colorList[0], "Backgr");
-        colorNums[0] = 0;
+    int colorInd;
+     if (color_nums = fopen("numcol.txt", "r")) { 
+        if (color_list = fopen("colors.txt", "r")) {
+            colorInd = -1;
+            char check[2];
+            do {
+                colorInd++;
+                fscanf(color_list, "%s", &colorList[colorInd]);
+                fscanf(color_nums, "%d", &colorNums[colorInd]);
+                sprintf(check, "%d", colorNums[colorInd]);
+            } while (strlen(colorList[colorInd]) != 0 && colorInd < 100 && isdigit(check[0]));
+            fclose(color_list);
+            fclose(color_nums);
+        } else {
+            colorInd = 8;
+        }
+    } else {colorInd = 8;
     }
     int red, green, blue;
     for (int i = 0; i < colorInd; i++) {
@@ -143,29 +174,27 @@ int getColors() {
         green = (colorNums[i] - red * 1e6) / 1e3;
         blue = colorNums[i] - red * 1e6 - green * 1e3;
         init_color(i, red, green, blue);
-        init_pair(i+1, i, 0);
+        init_pair(i+1, i, i);
     }
-    fclose(color_list);
-    fclose(color_nums);
     return colorInd;
 }
-
 
 void getRGB(int colorNum, int change) {
     clear();
     mvprintw(centerY + 2, centerX - 4, "R   G   B    (Max value is 255)");
     int red, green, blue;
     bool two = false, five = false;
+    char inp;
     for (int i = 0; i < 3; i++) {
         char *garbage;
         int cnt = 0;
-        char newCol[4] = "___";
+        char newCol[4] = "\0";
         do {
             mvprintw(centerY + 3, centerX - 5 + 4 * i, "%s", newCol);
             refresh();
-            char inp = getchar();
+            inp = getchar();
             if (inp == '-') {
-                newCol[cnt] = '_';
+                newCol[cnt] = '\0';
                 cnt = ((cnt == 0) ? 0 : cnt - 1);
             } else if (tolower(inp) == 'x') {
                 return;
@@ -188,7 +217,7 @@ void getRGB(int colorNum, int change) {
                     }
                 }
             }
-        } while (cnt < 3);
+        } while (cnt < 3 && inp != '\r');
         mvprintw(centerY + 3, centerX - 5 + 4 * i, "%s", newCol);
         if (i == 0) red = strtol(newCol, &garbage, 10);
         if (i == 1) green = strtol(newCol, &garbage, 10);
@@ -200,7 +229,6 @@ void getRGB(int colorNum, int change) {
     colorNums[change] = red * 1e6 + green * 1e3 + blue;
     change != 0 ? giveColors(colorNum) : giveColors(colorNum - 1);
 }
-
 
 void optionMenu() {
     clear();
@@ -229,7 +257,7 @@ void optionMenu() {
             mvprintw(centerY + 1, centerX - 17, "Inputted: %d, Press enter to save", DELAY);
             mvprintw(centerY + 2, centerX - 9, "Press X to change");
             refresh();
-            char choice;
+            char choice; 
             do {
                 choice = tolower(getchar());
             } while (choice != '\r' && choice != 'x');
@@ -250,6 +278,7 @@ void optionMenu() {
         clear();
         mvprintw(centerY - 5, centerX + 30, "The current colors are: ");
         for (int i = 0; i < colorNum + 1; i++) {
+            init_pair(i+1, i, 0);
             attron(COLOR_PAIR(i + 1));
             if (i < 26) {
                 mvprintw(centerY - 4 + i, centerX + 30, "%d. %s", i, colorList[i]);
@@ -282,6 +311,7 @@ void optionMenu() {
         } while (cnt < 7);
         strcpy(colorList[colorNum], colName);
         getRGB(colorNum, colorNum);
+        for (int i = 0; i < colorNum; i++) init_pair(i+1, i, i);
     } else if (picked == 6) {
         getRGB(colorNum, 0);
         getColors();
@@ -289,6 +319,7 @@ void optionMenu() {
         mvprintw(centerY - 3, centerX - 30, "Select color (For single digit end in a .), press X to return");
         mvprintw(centerY - 4, centerX - 10, "Your colors are: ");
         for (int i = 0; i < colorNum; i++) {
+            init_pair(i+1, i, 0);
             attron(COLOR_PAIR(i + 1));
             if (i < 26) {
                 mvprintw(centerY - 2 + i, centerX - (colorNum > 25 ? 15 : 10), "%d. %s", i, colorList[i]);
@@ -310,6 +341,7 @@ void optionMenu() {
         if (choice != '.') nextPick = nextPick * 10 + choice - '0';
         if (nextPick == 0) nextPick = 99;
         nextPick++;
+        for (int i = 0; i < colorNum; i++) init_pair(i+1, i, i);
         if (choice != 'x') {
             if (picked == 1) {
                 SNAKE_COLOR = nextPick;
@@ -324,24 +356,22 @@ void optionMenu() {
     }
 }
 
-
 void getProfiles() {
     FILE *profiles;
-    profiles = fopen("profiles.txt", "r");
-    do {
-        strIndex++;
-        fscanf(profiles, "%s", &profList[strIndex]);
-    } while (strlen(profList[strIndex]) != 0 && strIndex < 100);
-    strIndex--;
-    fclose(profiles);
+    if (profiles = fopen("profiles.txt", "r")) {
+        do {
+            strIndex++;
+            fscanf(profiles, "%s", &profList[strIndex]);
+        } while (strlen(profList[strIndex]) != 0 && strIndex < 100);
+        strIndex--;
+        fclose(profiles);
+    }
 }
-
 
 void updateScores() {
     char colrs[3], highs[6], prof[16], delay[5];
     if (Login == -1) {
-        clear();
-        mvprintw(centerY, centerX - 13, "Do want to save your score?");
+        mvprintw(centerY, centerX - 14, "Do you want to save your score?");
         mvprintw(centerY + 1, centerX - 2, "Y/N");
         refresh();
         char cont;
@@ -394,7 +424,6 @@ void updateScores() {
     strcpy(profList[Login], prof);
 }
 
-
 void giveProfiles() {
     updateScores();
     FILE *profiles;
@@ -402,7 +431,6 @@ void giveProfiles() {
     for (int i = 0; i < strIndex + 1; i++) fprintf(profiles, "%s\n", profList[i]);
     fclose(profiles);
 }
-
 
 int login() {
     clear();
@@ -439,10 +467,9 @@ int login() {
     }
 }
 
-
 void snakePos(char dir) {
     bool axis;
-    int intDir, pastPos, doublePast;
+    int intDir, pastXPos, pastYPos, doubleYPast, doubleXPast;
     switch (tolower(dir)) {
         case 'a':
             intDir = -1;
@@ -463,26 +490,27 @@ void snakePos(char dir) {
         default:
             break;
     }
-    pastPos = snakeList[0];
+    snakeArr[0].prevX = snakeArr[0].x;
+    snakeArr[0].prevY = snakeArr[0].y;
     for (int i = 1; i < snakeLen + 1; i++) {
-        doublePast = snakeList[i];
-        snakeList[i] = pastPos;
-        pastPos = doublePast;
+            snakeArr[i].prevX = snakeArr[i].x;
+            snakeArr[i].prevY = snakeArr[i].y;
+            snakeArr[i].x = snakeArr[i - 1].prevX;
+            snakeArr[i].y = snakeArr[i - 1].prevY;
     }
-    intDir = snakeList[0] + intDir * ((axis) ? 100 : 1);
-    if (intDir == applePos) {
+    int nextX = snakeArr[0].x + (axis ? intDir : 0);
+    int nextY = snakeArr[0].y + (!axis ? intDir : 0);
+    if (nextX == applePos.x && nextY == applePos.y) {
+        snakeArr[snakeLen].end = false;
         snakeLen++;
-        int appleX = rand() % WIDTH;
-        int appleY = rand() % HEIGHT;
-        if (appleX == 0 || appleX == WIDTH) appleX += ((appleX == 0) ? 1 : -1);
-        if (appleY == 0 || appleY== HEIGHT) appleY += ((appleY == 0) ? 1 : -1);
-        applePos = appleX * 100 + appleY;
+        snakeArr[snakeLen].end = true;
+        newApple();
     }
     for (int i = 0; i < snakeLen; i++)  {
-        if (snakeList[i] == intDir || HEIGHT == intDir - (intDir / 100) * 100 || WIDTH == intDir / 100 || intDir / 100 == 0 || intDir - (intDir / 100) * 100 == 0) {
+        if ((snakeArr[i].x == nextX && snakeArr[i].y == nextY) || HEIGHT == nextY || WIDTH == nextX || nextX == 0 || nextY == 0) {
             updateScores();
             if (snakeLen * 100 > highScore) {
-                highScore = snakeLen * 100;
+                highScore = snakeLen * 100; 
                 if (snakeLen * 100 > leaderBoard[0]) {
                     leaderBoard[0] = snakeLen * 1e2;
                     mvprintw(centerY, MAX_X  / 2- 15, "You got the HIGH SCORE of %d", highScore);
@@ -497,28 +525,22 @@ void snakePos(char dir) {
             do {
                  playAgain = tolower(getchar());
             } while (playAgain != '\r');
+            clear();
             start = true;
             snakeLen = 1;
-            intDir = WIDTH * 50 + HEIGHT / 2;
-            int appleX = rand() % WIDTH;
-            int appleY = rand() % HEIGHT;
-            if (appleX == 0 || appleX == WIDTH) appleX += ((appleX == 0) ? 1 : -1);
-            if (appleY == 0 || appleY== HEIGHT) appleY += ((appleY == 0) ? 1 : -1);
-            applePos = appleX * 100 + appleY;
+            nextX = WIDTH / 2;
+            nextY = HEIGHT / 2;
+            newApple();
             break;
         }
         if (start) break;
-        if (snakeList[i] == applePos) while (snakeList[i] == applePos) {
-            int appleX = rand() % WIDTH;
-            int appleY = rand() % HEIGHT;
-            if (appleX == 0 || appleX == WIDTH) appleX += ((appleX == 0) ? 1 : -1);
-            if (appleY == 0 || appleY== HEIGHT) appleY += ((appleY == 0) ? 1 : -1);
-            applePos = appleX * 100 + appleY;
+        if (snakeArr[i].x == applePos.x && snakeArr[i].y == applePos.y) while (snakeArr[i].x == applePos.x && snakeArr[i].y == applePos.y) { 
+            newApple();
         }
     }
-    snakeList[0] = intDir;
+    snakeArr[0].x = nextX;
+    snakeArr[0].y = nextY;
 }
-
 
 char snakeMove(char oldDir) {
     char dir = ' ';
@@ -547,69 +569,72 @@ char snakeMove(char oldDir) {
     return dir;
 }
 
+int colorCh[3] = {0, 0, 0};
 
 void printSnake() {
-    bool snakeCheck, snakeDoubleCheck, appleCheck;
+    bool snakeCheck = false, snakeDoubleCheck = false, appleCheck;
     int snakeBody;
-    for (int i = 0; i < HEIGHT + 1; i++) {
-        for (int k = 0; k < snakeLen; k++) {
-            snakeCheck = snakeList[k] - (snakeList[k] / 100) * 100 == i;
-            if (snakeCheck) break;
-        }
-        for (int j = 0; j < WIDTH + 1; j++) {
-            if (snakeCheck) {
-                for (int k = 0; k < snakeLen; k++) {
-                    snakeBody = k;
-                    snakeDoubleCheck = snakeList[k] == j * 100 + i;
-                    if (snakeDoubleCheck) break;
-                }
-            }
-            mvprintw(50,0,"%d", applePos);
-            colorCnt += .01;
-            if (i == 0 || j == 0 || i == HEIGHT || j == WIDTH ) {
-                bool balls = false;
-                if (WALL_COLOR > 99) {
-                    balls = true;
-                    WALL_COLOR -= 99;
-                }
-                attron(COLOR_PAIR(WALL_COLOR));
-                mvprintw(i + centerY - HEIGHT / 2,j + centerX - WIDTH / 2,"#");
-                attroff(COLOR_PAIR(WALL_COLOR));
-                if (balls) WALL_COLOR += (colorCnt > .15 ? (WALL_COLOR == 7 ? 94 : 100) : 99);
-            } else if (applePos == j * 100 + i) {
-                bool balls = false;
-                if (APPLE_COLOR > 99) {
-                    balls = true;
-                    APPLE_COLOR -= 99;
-                }
-                attron(COLOR_PAIR(APPLE_COLOR));
-                mvprintw(i + centerY - HEIGHT / 2,j + centerX - WIDTH / 2,"@");
-                attroff(COLOR_PAIR(APPLE_COLOR));
-                if (balls) APPLE_COLOR += (colorCnt > .15 ? (APPLE_COLOR == 7 ? 94 : 100) : 99);
-            } else if (snakeDoubleCheck) {
-                bool balls = false;
-                if (SNAKE_COLOR > 99) {
-                    balls = true;
-                    SNAKE_COLOR = snakeBody % 6 + 2;
-                }
-                attron(COLOR_PAIR(SNAKE_COLOR));
-                mvprintw(i + centerY - HEIGHT / 2,j + centerX - WIDTH / 2,"X");
-                attroff(COLOR_PAIR(SNAKE_COLOR));
-                if (balls) SNAKE_COLOR = 100;
-            } else {
-                mvprintw(i + centerY - HEIGHT / 2,j + centerX - WIDTH / 2, " ");
-            }
-            if (colorCnt > .15) colorCnt = 0;
-        }
+    bool tick = false;
+    end_t = clock();
+    clock_t hold_t = start_t - end_t;
+    if (hold_t > 2.5e5) {
+        start_t = clock();
+        tick = true;
     }
+    for (int i = 0; i < WIDTH; i++) {
+        bool balls = false;
+        if (WALL_COLOR > 99) {
+            balls = true;
+            colorCh[0] += tick;
+            WALL_COLOR = colorCh[0] % 6 + 2;
+        }
+        attron(COLOR_PAIR(WALL_COLOR));
+        mvprintw(centerY - HEIGHT / 2, i + centerX - WIDTH / 2, "#");
+        mvprintw(centerY + HEIGHT / 2 + 1, i + centerX - WIDTH / 2, "#");
+        if (i <= HEIGHT) {
+            mvprintw(centerY - HEIGHT / 2 + i, centerX - WIDTH / 2, "#");
+            mvprintw(centerY - HEIGHT / 2 + i, centerX + WIDTH / 2, "#");
+        }
+        attroff(COLOR_PAIR(WALL_COLOR));
+    }
+    if (SNAKE_COLOR > 99) {
+        for (int i = 0; i < snakeLen; i++) {
+            colorCh[2] += tick;
+            SNAKE_COLOR = (i + colorCh[2]) % 6 + 2;
+            attron(COLOR_PAIR(SNAKE_COLOR));
+            mvprintw(centerY - HEIGHT / 2 + snakeArr[i].y, centerX - WIDTH / 2 + snakeArr[i].x, "X");
+            attroff(COLOR_PAIR(SNAKE_COLOR));
+            SNAKE_COLOR = 100;
+            if (snakeArr[i].end) mvprintw(centerY - HEIGHT / 2 + snakeArr[i].prevY, centerX - WIDTH / 2 + snakeArr[i].prevX, " ");
+        }
+    } else {
+        attron(COLOR_PAIR(SNAKE_COLOR));
+        mvprintw(centerY - HEIGHT / 2 + snakeArr[0].y, centerX - WIDTH / 2 + snakeArr[0].x, "X");
+        attroff(COLOR_PAIR(SNAKE_COLOR));
+        mvprintw(centerY - HEIGHT / 2 + snakeArr[snakeLen - 1].prevY, centerX - WIDTH / 2 + snakeArr[snakeLen - 1].prevX, " ");
+    }
+    bool balls = false;
+    if (APPLE_COLOR > 99) {
+        balls = true;
+        colorCh[1] += tick;
+        APPLE_COLOR = colorCh[1] % 6 + 2;
+    }
+    attron(COLOR_PAIR(APPLE_COLOR));
+    mvprintw(centerY - HEIGHT / 2 + applePos.y, centerX - WIDTH / 2 + applePos.x, "@");
+    attroff(COLOR_PAIR(APPLE_COLOR));
     mvprintw(centerY + HEIGHT / 2 + 2, centerX - WIDTH / 2, "Score: %d  ", snakeLen * 100);
     mvprintw(centerY + HEIGHT / 2 + 2, centerX + WIDTH / 2 - 18, "Personal Best: %d", highScore);
     mvprintw(centerY + HEIGHT / 2 + 4, centerX - 8, "Highscore: %d", leaderBoard[0]);
     refresh();
 }
 
-
 int main() {
+    snakeArr[0].x = WIDTH / 2;
+    snakeArr[0].y = HEIGHT / 2;
+    snakeArr[0].prevX = WIDTH / 2;
+    snakeArr[0].prevY = HEIGHT / 2;
+    snakeArr[0].end = true;    
+    start_t = clock();
     initscr();
     cbreak();            
     noecho();
@@ -622,18 +647,14 @@ int main() {
     srand(time(NULL));
     getProfiles();
     if (strIndex != -1) Login = login();
-    int appleX = rand() % WIDTH;
-    int appleY = rand() % HEIGHT;
-    if (appleX == 0 || appleX == WIDTH) appleX += ((appleX == 0) ? 1 : -1);
-    if (appleY == 0 || appleY== HEIGHT) appleY += ((appleY == 0) ? 1 : -1);
-    applePos = appleX * 100 + appleY;
+    newApple();
     while (true) {
         int startOp = startMenu();
         if (startOp == 1) {
             clear();
             char oldDir;
             while (true) {
-                printSnake(oldDir);
+                printSnake();
                 char DIR = snakeMove(oldDir);
                 if (DIR == 'x' || DIR == ' ') {
                     if (DIR == ' ') {
