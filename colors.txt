@@ -6,10 +6,4 @@ Green
 Blue
 Purple
 White
-Brown
-Magenta
-Cyan
 Teal
-Mint
-Umber
-Black
