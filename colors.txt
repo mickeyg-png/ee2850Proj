@@ -7,3 +7,5 @@ Blue
 Purple
 White
 Teal
+Pink
+Bean
